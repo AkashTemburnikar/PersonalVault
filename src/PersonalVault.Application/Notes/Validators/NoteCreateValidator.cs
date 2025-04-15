@@ -1,17 +1,18 @@
 using FluentValidation;
 using PersonalVault.Application.Notes.DTOs;
 
-namespace PersonalVault.Application.Notes.Validators;
-
-public class NoteCreateValidator : AbstractValidator<NoteCreateDto>
+namespace PersonalVault.Application.Notes.Validators
 {
-    public NoteCreateValidator()
+    public class NoteCreateValidator : AbstractValidator<NoteCreateDto>
     {
-        RuleFor(x => x.Title)
-            .NotEmpty()
-            .MaximumLength(100);
-        
-        RuleFor(x => x.Content)
-            .NotEmpty();
+        public NoteCreateValidator()
+        {
+            RuleFor(x => x.Title)
+                .NotEmpty().WithMessage("Title cannot be empty")
+                .MaximumLength(100);
+            
+            RuleFor(x => x.Content)
+                .NotEmpty().WithMessage("Content cannot be empty");
+        }
     }
 }
