@@ -1,0 +1,9 @@
+﻿services:
+  personalvault-api:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Because it's in the root!
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development

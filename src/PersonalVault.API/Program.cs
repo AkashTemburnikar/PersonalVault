@@ -41,15 +41,12 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure middleware.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(s =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(s =>
-    {
-        s.SwaggerEndpoint("/swagger/v1/swagger.json", "My Personal Vault API V1");
-        s.RoutePrefix = string.Empty;
-    });
-}
+    s.SwaggerEndpoint("/swagger/v1/swagger.json", "My Personal Vault API V1");
+    s.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 
