@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersonalVault.Infrastructure.Persistence;
 using PersonalVault.Infrastructure.Repositories;
@@ -5,6 +6,9 @@ using PersonalVault.Application.Common.Interfaces;
 using PersonalVault.Application.Notes.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using MediatR;
+using PersonalVault.Application.Mapping;
+using PersonalVault.Application.Notes.Commands;
 using PersonalVault.Application.Notes.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +27,12 @@ builder.Services.AddScoped<INoteService, NoteService>();
 // Register FluentValidation (automatically scans for validators)
 builder.Services.AddValidatorsFromAssembly(typeof(NoteCreateValidator).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
+
+// Register AutoMapper with our mapping profiles
+builder.Services.AddAutoMapper(typeof(NoteMappingProfile));
+
+// Register MediatR (this scans the assembly containing our commands and handlers)
+builder.Services.AddMediatR(typeof(CreateNoteCommand).Assembly);
 
 // Add Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();

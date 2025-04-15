@@ -1,80 +1,66 @@
+using AutoMapper;
 using PersonalVault.Application.Common.Interfaces;
 using PersonalVault.Application.Notes.DTOs;
 using PersonalVault.Domain.Entities;
 
-namespace PersonalVault.Application.Notes.Services;
-
-public class NoteService : INoteService
+namespace PersonalVault.Application.Notes.Services
 {
-    private readonly INoteRepository _noteRepository;
-    
-    public NoteService(INoteRepository noteRepository)
+    public class NoteService : INoteService
     {
-        _noteRepository = noteRepository;
-    }
+        private readonly INoteRepository _noteRepository;
+        private readonly IMapper _mapper;
     
-    public async Task<Guid> CreateNoteAsync(NoteCreateDto dto)
-    {
-        var note = new Note
+        public NoteService(INoteRepository noteRepository, IMapper mapper)
         {
-            Id = Guid.NewGuid(),
-            Title = dto.Title,
-            Content = dto.Content,
-            CreatedAt = DateTime.UtcNow
-        };
-        
-        return await _noteRepository.AddNoteAsync(note);
-    }
+            _noteRepository = noteRepository;
+            _mapper = mapper;
+        }
     
-    public async Task<NoteDto?> GetNoteByIdAsync(Guid id)
-    {
-        var note = await _noteRepository.GetNoteByIdAsync(id);
-        if (note is null)
-            return null;
-        
-        return new NoteDto
+        public async Task<Guid> CreateNoteAsync(NoteCreateDto dto)
         {
-            Id = note.Id,
-            Title = note.Title,
-            Content = note.Content,
-            CreatedAt = note.CreatedAt
-        };
-    }
+            // Use AutoMapper to map NoteCreateDto to Note entity.
+            var note = _mapper.Map<Note>(dto);
+            note.Id = Guid.NewGuid();
+            note.CreatedAt = DateTime.UtcNow;
+            
+            return await _noteRepository.AddNoteAsync(note);
+        }
     
-    // New method to get all notes
-    public async Task<IEnumerable<NoteDto>> GetAllNotesAsync()
-    {
-        var notes = await _noteRepository.GetAllNotesAsync();
-        return notes.Select(note => new NoteDto
+        public async Task<NoteDto?> GetNoteByIdAsync(Guid id)
         {
-            Id = note.Id,
-            Title = note.Title,
-            Content = note.Content,
-            CreatedAt = note.CreatedAt
-        });
-    }
+            var note = await _noteRepository.GetNoteByIdAsync(id);
+            if (note is null)
+                return null;
     
-    // Update an existing note
-    public async Task<bool> UpdateNoteAsync(Guid id, NoteUpdateDto dto)
-    {
-        var note = await _noteRepository.GetNoteByIdAsync(id);
-        if (note is null) return false;
-        
-        note.Title = dto.Title;
-        note.Content = dto.Content;
-        // Optionally update the CreatedAt or add an UpdatedAt property
-        
-        await _noteRepository.UpdateNoteAsync(note);
-        return true;
-    }
+            // Use AutoMapper to map entity to DTO.
+            return _mapper.Map<NoteDto>(note);
+        }
     
-    // Delete a note
-    public async Task<bool> DeleteNoteAsync(Guid id)
-    {
-        var note = await _noteRepository.GetNoteByIdAsync(id);
-        if (note is null) return false;
-        
-        await _noteRepository.DeleteNoteAsync(note);
-        return true;
+        public async Task<IEnumerable<NoteDto>> GetAllNotesAsync()
+        {
+            var notes = await _noteRepository.GetAllNotesAsync();
+            return _mapper.Map<IEnumerable<NoteDto>>(notes);
+        }
+    
+        public async Task<bool> UpdateNoteAsync(Guid id, NoteUpdateDto dto)
+        {
+            var note = await _noteRepository.GetNoteByIdAsync(id);
+            if (note is null) return false;
+            
+            // AutoMapper can map changes from DTO onto the existing note entity
+            _mapper.Map(dto, note);
+    
+            await _noteRepository.UpdateNoteAsync(note);
+            return true;
+        }
+    
+        public async Task<bool> DeleteNoteAsync(Guid id)
+        {
+            var note = await _noteRepository.GetNoteByIdAsync(id);
+            if (note is null) return false;
+    
+            await _noteRepository.DeleteNoteAsync(note);
+            return true;
+        }
     }
 }
