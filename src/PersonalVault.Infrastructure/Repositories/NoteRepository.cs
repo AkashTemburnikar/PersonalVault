@@ -30,4 +30,18 @@ public class NoteRepository : INoteRepository
     {
         return await _dbContext.Notes.ToListAsync();
     }
+    
+    // Update the note
+    public async Task UpdateNoteAsync(Note note)
+    {
+        _dbContext.Notes.Update(note);
+        await _dbContext.SaveChangesAsync();
+    }
+    
+    // Delete the note
+    public async Task DeleteNoteAsync(Note note)
+    {
+        _dbContext.Notes.Remove(note);
+        await _dbContext.SaveChangesAsync();
+    }
 }

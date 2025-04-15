@@ -53,4 +53,28 @@ public class NoteService : INoteService
             CreatedAt = note.CreatedAt
         });
     }
+    
+    // Update an existing note
+    public async Task<bool> UpdateNoteAsync(Guid id, NoteUpdateDto dto)
+    {
+        var note = await _noteRepository.GetNoteByIdAsync(id);
+        if (note is null) return false;
+        
+        note.Title = dto.Title;
+        note.Content = dto.Content;
+        // Optionally update the CreatedAt or add an UpdatedAt property
+        
+        await _noteRepository.UpdateNoteAsync(note);
+        return true;
+    }
+    
+    // Delete a note
+    public async Task<bool> DeleteNoteAsync(Guid id)
+    {
+        var note = await _noteRepository.GetNoteByIdAsync(id);
+        if (note is null) return false;
+        
+        await _noteRepository.DeleteNoteAsync(note);
+        return true;
+    }
 }
