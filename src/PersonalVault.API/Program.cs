@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using PersonalVault.Infrastructure.Persistence;
 using PersonalVault.Infrastructure.Repositories;
@@ -10,8 +9,26 @@ using MediatR;
 using PersonalVault.Application.Mapping;
 using PersonalVault.Application.Notes.Commands;
 using PersonalVault.Application.Notes.Validators;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog early so that it catches all startup logs.
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+// Replace the default logging with Serilog.
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
+
+builder.Services.AddApplicationInsightsTelemetry();
+
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -47,6 +64,8 @@ app.UseSwaggerUI(s =>
     s.SwaggerEndpoint("/swagger/v1/swagger.json", "My Personal Vault API V1");
     s.RoutePrefix = string.Empty;
 });
+
+app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 
