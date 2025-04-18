@@ -39,7 +39,6 @@ namespace PersonalVault.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            Console.WriteLine("GET /api/notes called");
             var notes = await _mediator.Send(new GetAllNotesQuery());
             return Ok(notes);
         }
