@@ -1,0 +1,6 @@
+apiVersion: v2
+name: personalvault-api
+description: A Helm chart for PersonalVault .NET API
+type: application
+version: 0.1.0
+appVersion: "1.0"

@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  repository: akashte/personalvaultapi
+  pullPolicy: Always
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 8080
+  targetPort: 8080
+  nodePort: 30081
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
