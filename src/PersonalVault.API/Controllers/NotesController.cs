@@ -8,6 +8,7 @@ using PersonalVault.Application.Notes.Queries;
 namespace PersonalVault.API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class NotesController : ControllerBase
     {
@@ -19,7 +20,6 @@ namespace PersonalVault.API.Controllers
         }
 
         // POST: api/notes - Create a new note.
-        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] NoteCreateDto noteDto)
         {
