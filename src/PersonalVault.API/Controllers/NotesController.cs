@@ -19,7 +19,7 @@ namespace PersonalVault.API.Controllers
         }
 
         // POST: api/notes - Create a new note.
-
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] NoteCreateDto noteDto)
         {
