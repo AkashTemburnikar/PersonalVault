@@ -13,14 +13,15 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog early so that it catches all startup logs.
+// ========================
+// 🔹 Logging Configuration
+// ========================
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-// Replace the default logging with Serilog.
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
@@ -32,39 +33,87 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
+builder.WebHost.UseUrls("http://0.0.0.0:8080");
+
 builder.Services.AddApplicationInsightsTelemetry();
 
-
-// Add services to the container.
+// ==========================
+// 🔹 Register Services
+// ==========================
 builder.Services.AddControllers();
-
-// Register EF Core DbContext using the connection string from configuration.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register repository and application service
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<INoteService, NoteService>();
 
-// Register FluentValidation (automatically scans for validators)
 builder.Services.AddValidatorsFromAssembly(typeof(NoteCreateValidator).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
 
-// Register AutoMapper with our mapping profiles
 builder.Services.AddAutoMapper(typeof(NoteMappingProfile));
-
-// Register MediatR (this scans the assembly containing our commands and handlers)
 builder.Services.AddMediatR(typeof(CreateNoteCommand).Assembly);
 
-// Add Swagger for API documentation
+// ==========================
+// 🔐 Auth0 Configuration
+// ==========================
+const string domain = "https://dev-test-0510.us.auth0.com";
+const string audience = "https://personalvault-api";
+
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.Authority = domain;
+        options.Audience = audience;
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidAudience = audience,
+            ValidIssuer = domain
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// ==========================
+// 📘 Swagger Setup with Auth
+// ==========================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter: **Bearer {your Auth0 access token}**"
+    });
 
-builder.WebHost.UseUrls("http://0.0.0.0:8080");
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
+// ==========================
+// 🔧 Build the App
+// ==========================
 var app = builder.Build();
 
-// Configure middleware.
+// ==========================
+// 🔄 Middleware Pipeline
+// ==========================
 app.UseSwagger();
 app.UseSwaggerUI(s =>
 {
@@ -73,11 +122,10 @@ app.UseSwaggerUI(s =>
 });
 
 app.UseSerilogRequestLogging();
-
 app.UseHttpsRedirection();
 
+app.UseAuthentication(); // 👈 Must come before Authorization
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

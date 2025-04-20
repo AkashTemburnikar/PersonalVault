@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using PersonalVault.Application.Notes.DTOs;
 using PersonalVault.Application.Notes.Commands;
 using PersonalVault.Application.Notes.Queries;
@@ -18,6 +19,7 @@ namespace PersonalVault.API.Controllers
         }
 
         // POST: api/notes - Create a new note.
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] NoteCreateDto noteDto)
         {
