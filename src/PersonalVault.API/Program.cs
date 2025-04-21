@@ -1,5 +1,6 @@
 using AspNetCoreRateLimit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using PersonalVault.Infrastructure.Persistence;
 using PersonalVault.Infrastructure.Repositories;
 using PersonalVault.Application.Common.Interfaces;
@@ -12,37 +13,50 @@ using PersonalVault.Application.Mapping;
 using PersonalVault.Application.Notes.Commands;
 using PersonalVault.Application.Notes.Validators;
 using Serilog;
+using Microsoft.ApplicationInsights;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ========================
-// 🔹 Logging Configuration
-// ========================
+// ==========================================
+// 🔹 Logging Configuration with Application Insights
+// ==========================================
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-builder.Host.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext()
-    .WriteTo.Console());
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    var aiConnectionString = context.Configuration["ApplicationInsights:ConnectionString"];
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.ApplicationInsights(
+            services.GetRequiredService<TelemetryClient>(),
+            TelemetryConverter.Traces);
+});
 
+// ==========================
+// 🔧 Configure URLs
+// ==========================
 builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
+// ==========================
+// 📡 Application Insights
+// ==========================
 builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddSingleton<TelemetryClient>();
 
 // ==========================
 // 🔹 Register Services
 // ==========================
 builder.Services.AddControllers();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -82,24 +96,24 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        In = ParameterLocation.Header,
         Description = "Enter: **Bearer {your Auth0 access token}**"
     });
 
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
@@ -108,21 +122,24 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// ==========================
+// 🧠 Rate Limiting
+// ==========================
 builder.Services.AddMemoryCache();
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // ==========================
-// 🔧 Build the App
+// 🛠 Build the App
 // ==========================
 var app = builder.Build();
-
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // ==========================
 // 🔄 Middleware Pipeline
 // ==========================
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseSwagger();
 app.UseSwaggerUI(s =>
 {
@@ -133,9 +150,8 @@ app.UseSwaggerUI(s =>
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 
-// Middleware
 app.UseIpRateLimiting();
-app.UseAuthentication(); // 👈 Must come before Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
