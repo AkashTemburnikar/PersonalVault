@@ -1,3 +1,4 @@
+using AspNetCoreRateLimit;
 using Microsoft.EntityFrameworkCore;
 using PersonalVault.Infrastructure.Persistence;
 using PersonalVault.Infrastructure.Repositories;
@@ -106,6 +107,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
 // ==========================
 // 🔧 Build the App
 // ==========================
@@ -124,6 +130,8 @@ app.UseSwaggerUI(s =>
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 
+// Middleware
+app.UseIpRateLimiting();
 app.UseAuthentication(); // 👈 Must come before Authorization
 app.UseAuthorization();
 
