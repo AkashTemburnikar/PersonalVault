@@ -7,6 +7,7 @@ using PersonalVault.Application.Notes.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using MediatR;
+using PersonalVault.API.Middleware;
 using PersonalVault.Application.Mapping;
 using PersonalVault.Application.Notes.Commands;
 using PersonalVault.Application.Notes.Validators;
@@ -116,6 +117,8 @@ builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>()
 // 🔧 Build the App
 // ==========================
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // ==========================
 // 🔄 Middleware Pipeline
