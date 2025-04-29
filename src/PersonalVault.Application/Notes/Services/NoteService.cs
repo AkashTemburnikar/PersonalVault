@@ -3,7 +3,6 @@ using MediatR;
 using PersonalVault.Application.Common.Interfaces;
 using PersonalVault.Application.Notes.DTOs;
 using PersonalVault.Domain.Entities;
-using PersonalVault.Domain.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,9 +32,6 @@ namespace PersonalVault.Application.Notes.Services
             
             // Add note to repository/persistence
             var noteId = await _noteRepository.AddNoteAsync(note);
-            
-            // Publish the domain event
-            await _mediator.Publish(new NoteCreatedEvent(note.Id, note.Title, note.CreatedAt));
             
             return noteId;
         }
